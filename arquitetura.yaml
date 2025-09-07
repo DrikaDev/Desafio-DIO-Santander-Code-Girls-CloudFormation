@@ -2,88 +2,7 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: "Fluxo: Usuario -> S3 -> Lambda -> EC2 (com EBS) -> Usuario"
 
 Resources:
-  # (3) Bucket S3 para upload dos arquivos
-  MyS3Bucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: bucket-dio-santander
-      NotificationConfiguration:
-        LambdaConfigurations:
-          - Event: "s3:ObjectCreated:*"
-            Function: !GetAtt MyLambdaFunction.Arn
-
-  # (4) Função Lambda que será acionada pelo S3
-  MyLambdaFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: MyLambdaProcessFile
-      Runtime: python3.9
-      Handler: index.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Code:
-        ZipFile: |
-          import boto3
-          def handler(event, context):
-              print("Arquivo recebido:", event)
-              # Aqui entraria a lógica de validação
-              return {"status": "processado"}
-
-  # Permissão para o S3 acionar a Lambda
-  LambdaPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !Ref MyLambdaFunction
-      Action: lambda:InvokeFunction
-      Principal: s3.amazonaws.com
-      SourceArn: !GetAtt MyS3Bucket.Arn
-
-  # (5) Instância EC2 que vai processar dados vindos da Lambda
-  MyEC2Instance:
-    Type: AWS::EC2::Instance
-    Properties:
-      InstanceType: t2.micro
-      ImageId: ami-0c55b159cbfafe1f0  
-      KeyName: my-key-pair     # Necessário já existir!
-      BlockDeviceMappings:
-        - DeviceName: "/dev/xvda"
-          Ebs:
-            VolumeSize: 8
-      SecurityGroupIds:
-        - !Ref MyEC2SecurityGroup
-
-  # (6) Volume EBS extra para armazenar dados do processamento
-  MyEBSVolume:
-    Type: AWS::EC2::Volume
-    Properties:
-      AvailabilityZone: !GetAtt MyEC2Instance.AvailabilityZone
-      Size: 20
-      VolumeType: gp2
-
-  # Associação do volume EBS ao EC2
-  MyEBSAttachment:
-    Type: AWS::EC2::VolumeAttachment
-    Properties:
-      InstanceId: !Ref MyEC2Instance
-      VolumeId: !Ref MyEBSVolume
-      Device: /dev/sdh
-
-  # (7) Security Group permitindo acesso do usuário ao EC2
-  MyEC2SecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Permitir acesso ao EC2
-      VpcId: vpc-12345678   # Substitua pela VPC válida da sua conta
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 22   # SSH
-          ToPort: 22
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 80   # HTTP
-          ToPort: 80
-          CidrIp: 0.0.0.0/0
-
-  # Role para execução da Lambda:
+  # 1. Role da Lambda
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -109,3 +28,81 @@ Resources:
                   - ec2:DescribeInstances
                   - ec2:SendCommand
                 Resource: "*"
+
+  # 2. Bucket S3 para upload dos arquivos
+  MyS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: bucket-dio-santander
+
+  # 3. Função Lambda que será acionada pelo S3
+  MyLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python3.9
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: code-bucket
+        S3Key: lambda-code.zip
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref MyS3Bucket
+
+  # 4. Permissão para o S3 acionar a Lambda
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref MyLambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !GetAtt MyS3Bucket.Arn
+    DependsOn:
+      - MyLambdaFunction
+      - MyS3Bucket
+
+  # 5. Instância EC2 que vai processar dados vindos da Lambda
+  MyEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-0c55b159cbfafe1f0
+      KeyName: my-key-pair
+      BlockDeviceMappings:
+        - DeviceName: "/dev/xvda"
+          Ebs:
+            VolumeSize: 8
+      SecurityGroupIds:
+        - !Ref MyEC2SecurityGroup
+
+  # 6. Volume EBS extra
+  MyEBSVolume:
+    Type: AWS::EC2::Volume
+    Properties:
+      AvailabilityZone: !GetAtt MyEC2Instance.AvailabilityZone
+      Size: 20
+      VolumeType: gp2
+
+  # 7. Associação do volume EBS ao EC2
+  MyEBSAttachment:
+    Type: AWS::EC2::VolumeAttachment
+    Properties:
+      InstanceId: !Ref MyEC2Instance
+      VolumeId: !Ref MyEBSVolume
+      Device: /dev/sdh
+
+  # 8. Security Group para EC2
+  MyEC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Permitir acesso ao EC2
+      VpcId: vpc-00a487a5fd375b79e
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0

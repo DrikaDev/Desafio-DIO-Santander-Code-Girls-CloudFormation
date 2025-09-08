@@ -2,46 +2,34 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: "Fluxo: Usuario -> S3 -> Lambda -> EC2 (com EBS) -> Usuario"
 
 Resources:
-  # 1. Role da Lambda
-  LambdaExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: LambdaS3Access
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - s3:GetObject
-                  - s3:PutObject
-                Resource: !Sub "${MyS3Bucket.Arn}/*"
-              - Effect: Allow
-                Action:
-                  - ec2:DescribeInstances
-                  - ec2:SendCommand
-                Resource: "*"
-
-  # 2. Bucket S3 para upload dos arquivos
+  # 1. Bucket S3
   MyS3Bucket:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: bucket-dio-santander
 
-  # 3. Função Lambda que será acionada pelo S3
+  # 2. Bucket policy permitindo Lambda ler o código
+  MyS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref MyS3Bucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: arn:aws:iam::203102861496:role/SuaLambdaExecutionRole
+            Action:
+              - s3:GetObject
+            Resource: !Sub "${MyS3Bucket.Arn}/*"
+
+  # 3. Função Lambda
   MyLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
       Handler: index.handler
       Runtime: python3.9
-      Role: !GetAtt LambdaExecutionRole.Arn
+      Role: arn:aws:iam::203102861496:role/SuaLambdaExecutionRole
       Code:
         S3Bucket: code-bucket
         S3Key: lambda-code.zip
@@ -49,7 +37,7 @@ Resources:
         Variables:
           BUCKET_NAME: !Ref MyS3Bucket
 
-  # 4. Permissão para o S3 acionar a Lambda
+  # 4. Permissão Lambda para S3
   LambdaInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -61,37 +49,7 @@ Resources:
       - MyLambdaFunction
       - MyS3Bucket
 
-  # 5. Instância EC2 que vai processar dados vindos da Lambda
-  MyEC2Instance:
-    Type: AWS::EC2::Instance
-    Properties:
-      InstanceType: t2.micro
-      ImageId: ami-0c55b159cbfafe1f0
-      KeyName: my-key-pair
-      BlockDeviceMappings:
-        - DeviceName: "/dev/xvda"
-          Ebs:
-            VolumeSize: 8
-      SecurityGroupIds:
-        - !Ref MyEC2SecurityGroup
-
-  # 6. Volume EBS extra
-  MyEBSVolume:
-    Type: AWS::EC2::Volume
-    Properties:
-      AvailabilityZone: !GetAtt MyEC2Instance.AvailabilityZone
-      Size: 20
-      VolumeType: gp2
-
-  # 7. Associação do volume EBS ao EC2
-  MyEBSAttachment:
-    Type: AWS::EC2::VolumeAttachment
-    Properties:
-      InstanceId: !Ref MyEC2Instance
-      VolumeId: !Ref MyEBSVolume
-      Device: /dev/sdh
-
-  # 8. Security Group para EC2
+  # 5. Security Group para EC2
   MyEC2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -106,3 +64,33 @@ Resources:
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
+
+  # 6. Instância EC2
+  MyEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-0c5204531f799e0c6
+      KeyName: my-key-pair
+      SecurityGroupIds:
+        - !Ref MyEC2SecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: "/dev/xvda"
+          Ebs:
+            VolumeSize: 8
+
+  # 7. Volume EBS extra
+  MyEBSVolume:
+    Type: AWS::EC2::Volume
+    Properties:
+      AvailabilityZone: !GetAtt MyEC2Instance.AvailabilityZone
+      Size: 20
+      VolumeType: gp2
+
+  # 8. Anexar volume EBS
+  MyEBSAttachment:
+    Type: AWS::EC2::VolumeAttachment
+    Properties:
+      InstanceId: !Ref MyEC2Instance
+      VolumeId: !Ref MyEBSVolume
+      Device: /dev/sdh

@@ -86,27 +86,25 @@ Isso significa que, ao invés de configurar cada serviço manualmente, podemos e
 
    <img width="1017" height="242" alt="image" src="https://github.com/user-attachments/assets/757df089-d156-41df-8f26-5dc49dd706dc" />
 
-2. Clique em "Create stack" e selecione "With new resources (standard)  
+2. Em "Create stack" selecione "With new resources (standard)  
    
    <img width="1432" height="183" alt="image" src="https://github.com/user-attachments/assets/3678d9d4-e039-4bf6-9352-350744893d65" />
 
-3. Selecione "Choose an existing template"  
+3. Depois selecione "Choose an existing template"  
    
    <img width="1102" height="241" alt="image" src="https://github.com/user-attachments/assets/625c927e-7d65-416b-a538-1b211bf4e5f4" />
 
-4. Selecione "Upload a template file", faça o upload do arquivo .yaml criado no VSCode e clique em Next:  
+4. Depois selecione "Upload a template file" e faça o upload do arquivo .yaml criado no VSCode e clique em Next:  
    
    <img width="1098" height="467" alt="image" src="https://github.com/user-attachments/assets/d7b897ab-0370-4ea2-836b-00e637acee28" />
 
-5. Dê um nome para a stack e clique em "Next":  
+5. Em "Specify stack details", dê um nome para a stack (ex: DesafioDio-Santander-CodeGirls) e clique em "Next":  
    
    <img width="1414" height="278" alt="image" src="https://github.com/user-attachments/assets/9fb4e465-71c4-49f3-b9f0-ee74a3538260" />
 
-6. Em "Configure stack options" clique no checkbox "**I acknowledge that AWS CloudFormation might create IAM resources.**" e depois clique em "Next":
+6. Em "Configure stack option" role até o fim e clique em Next.  
    
-   <img width="1103" height="187" alt="image" src="https://github.com/user-attachments/assets/c362d2b1-116f-482e-ac77-0f7428abe310" />
-
-7. Em "Review and create" reveja os Steps, e clique em "Submit":
+7. Em "Review and create" reveja os Steps, e clique em "Submit":  
    
    <img width="1415" height="491" alt="image" src="https://github.com/user-attachments/assets/0d7f642a-8c2a-4e4c-bac5-c47fefe236a3" />
 
@@ -118,8 +116,16 @@ Isso significa que, ao invés de configurar cada serviço manualmente, podemos e
    
    <img width="301" height="98" alt="image" src="https://github.com/user-attachments/assets/373f7043-400f-48a2-ae89-efe6e5e1e22b" />
 
-O meu deu erro
- ---
+---
+
+## Conclusão
+
+> Infelizmente o meu não funcionou. Tentei seguir o fluxo, mas encontrei barreiras que impediram a execução.
+> Por algumas razões, o template não foi executado completamente, mas toda a lógica, estrutura de recursos e dependências está documentada e pronta para ser revisada.
+
+<img width="931" height="65" alt="image" src="https://github.com/user-attachments/assets/6ad9c1fc-5ad7-4fe6-b346-4f4163601109" />
+
+---
 
 
 
